@@ -7,7 +7,6 @@
 const ChartModule = {
   chart: null,
   series: [],  // Array of line series for multi-date
-  volumeSeries: null,  // Histogram series for volume/activity
   currentMarket: null,
   currentInterval: 'max',  // Current time interval
 
@@ -46,7 +45,7 @@ const ChartModule = {
         borderColor: '#2a2a2a',
         scaleMargins: {
           top: 0.1,
-          bottom: 0.25,  // Leave room for volume at bottom
+          bottom: 0.1,
         },
       },
       timeScale: {
@@ -57,7 +56,6 @@ const ChartModule = {
     });
 
     this.series = [];
-    this.volumeSeries = null;
   },
 
   // Clear all series and recreate chart
@@ -68,7 +66,6 @@ const ChartModule = {
       this.chart = null;
     }
     this.series = [];
-    this.volumeSeries = null;
     this.init();
   },
 
@@ -90,50 +87,12 @@ const ChartModule = {
     return series;
   },
 
-  // Add volume/activity histogram series
-  addVolumeSeries() {
-    this.volumeSeries = this.chart.addHistogramSeries({
-      color: '#26a69a',
-      priceFormat: {
-        type: 'volume',
-      },
-      priceScaleId: 'volume',
-    });
-
-    // Configure the volume scale to sit at the bottom
-    this.volumeSeries.priceScale().applyOptions({
-      scaleMargins: {
-        top: 0.8,  // Volume takes bottom 20%
-        bottom: 0,
-      },
-    });
-
-    return this.volumeSeries;
-  },
-
-  // Calculate activity bars from price data (synthetic volume)
-  calculateActivity(chartData) {
-    if (chartData.length < 2) return [];
-
-    // First pass: calculate all changes and find max
-    const changes = [];
-    let maxChange = 0;
-
-    for (let i = 1; i < chartData.length; i++) {
-      const priceChange = chartData[i].value - chartData[i - 1].value;
-      const absChange = Math.abs(priceChange);
-      changes.push({ time: chartData[i].time, change: priceChange, abs: absChange });
-      if (absChange > maxChange) maxChange = absChange;
-    }
-
-    // Normalize to 0-100 range for visibility
-    const activity = changes.map(c => ({
-      time: c.time,
-      value: maxChange > 0 ? (c.abs / maxChange) * 100 : 0,
-      color: c.change >= 0 ? 'rgba(0, 255, 65, 0.6)' : 'rgba(255, 59, 59, 0.6)',
-    }));
-
-    return activity;
+  // Format volume for display
+  formatVolume(vol) {
+    if (!vol) return '$0';
+    if (vol >= 1000000) return '$' + (vol / 1000000).toFixed(1) + 'M';
+    if (vol >= 1000) return '$' + (vol / 1000).toFixed(0) + 'K';
+    return '$' + vol.toFixed(0);
   },
 
   // Set active timeframe button
@@ -145,7 +104,7 @@ const ChartModule = {
   },
 
   // Load single chart
-  async loadChart(tokenId, marketName, interval = null) {
+  async loadChart(tokenId, marketName, interval = null, volume24hr = null) {
     if (!tokenId) {
       console.error('[CHART] No token ID provided');
       return;
@@ -191,18 +150,13 @@ const ChartModule = {
       const series = this.addSeries(this.colors[0]);
       series.setData(chartData);
 
-      // Add activity/volume bars
-      const activityData = this.calculateActivity(chartData);
-      console.log('[CHART] Activity data points:', activityData.length, 'sample:', activityData.slice(0, 3));
-      if (activityData.length > 0) {
-        this.addVolumeSeries();
-        this.volumeSeries.setData(activityData);
-      }
-
       this.chart.timeScale().fitContent();
 
-      this.currentMarket = { tokenId, marketName };
-      document.getElementById('chart-market-name').textContent = marketName;
+      this.currentMarket = { tokenId, marketName, volume24hr };
+
+      // Display market name with 24hr volume if available
+      const volText = volume24hr ? ` (24hr: ${this.formatVolume(volume24hr)})` : '';
+      document.getElementById('chart-market-name').textContent = marketName + volText;
       console.log('[CHART] Loaded', chartData.length, 'points for', useInterval);
 
     } catch (error) {
@@ -212,7 +166,7 @@ const ChartModule = {
   },
 
   // Load multi-line chart for term structure
-  async loadMultiChart(dateMarkets, eventTitle, interval = null) {
+  async loadMultiChart(dateMarkets, eventTitle, interval = null, volume24hr = null) {
     if (!dateMarkets || dateMarkets.length === 0) {
       console.error('[CHART] No date markets provided');
       return;
@@ -235,7 +189,6 @@ const ChartModule = {
     // Build legend HTML
     let legendHtml = '<div class="chart-legend">';
     let loadedCount = 0;
-    let firstChartData = null;  // Store first market's data for volume bars
 
     // Load each date's chart data
     for (let i = 0; i < Math.min(dateMarkets.length, 6); i++) {
@@ -262,11 +215,6 @@ const ChartModule = {
 
         if (chartData.length === 0) continue;
 
-        // Store first market's data for volume bars
-        if (!firstChartData) {
-          firstChartData = chartData;
-        }
-
         const color = this.colors[i % this.colors.length];
         const series = this.addSeries(color);
         series.setData(chartData);
@@ -285,23 +233,17 @@ const ChartModule = {
     legendHtml += '</div>';
 
     if (loadedCount > 0) {
-      // Add activity/volume bars based on first market
-      if (firstChartData && firstChartData.length > 1) {
-        const activityData = this.calculateActivity(firstChartData);
-        if (activityData.length > 0) {
-          this.addVolumeSeries();
-          this.volumeSeries.setData(activityData);
-        }
-      }
-
       container.insertAdjacentHTML('beforeend', legendHtml);
       this.chart.timeScale().fitContent();
-      document.getElementById('chart-market-name').textContent = eventTitle + ' (Term Structure)';
+
+      // Display title with 24hr volume if available
+      const volText = volume24hr ? ` (24hr: ${this.formatVolume(volume24hr)})` : '';
+      document.getElementById('chart-market-name').textContent = eventTitle + volText;
     } else {
       document.getElementById('chart-market-name').textContent = eventTitle + ' (No data for ' + useInterval + ')';
     }
 
-    this.currentMarket = { multi: true, dateMarkets, eventTitle };
+    this.currentMarket = { multi: true, dateMarkets, eventTitle, volume24hr };
   },
 
   // Refresh current chart

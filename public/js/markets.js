@@ -550,29 +550,30 @@ const MarketsModule = {
       item.addEventListener('click', (e) => {
         const event = this._displayedEvents[index];
         const termItem = e.target.closest('.term-item');
+        const vol24hr = event?.volume24hr || null;
 
         // Clicked on a specific term/choice item
         if (termItem && termItem.dataset.token) {
-          ChartModule.loadChart(termItem.dataset.token, termItem.dataset.title);
+          ChartModule.loadChart(termItem.dataset.token, termItem.dataset.title, null, vol24hr);
           return;
         }
 
         // Multiple choice event - show all choices on chart
         if (event && event.eventType === 'multiple-choice' && event.choices.length > 1) {
-          ChartModule.loadMultiChart(event.choices, event.title);
+          ChartModule.loadMultiChart(event.choices, event.title, null, vol24hr);
           return;
         }
 
         // Date series event - show all dates on chart
         if (event && event.eventType === 'date-series' && event.dateMarkets.length > 1) {
-          ChartModule.loadMultiChart(event.dateMarkets, event.title);
+          ChartModule.loadMultiChart(event.dateMarkets, event.title, null, vol24hr);
           return;
         }
 
         // Binary event - single chart
         const token = item.dataset.token;
         const title = item.dataset.title;
-        if (token) ChartModule.loadChart(token, title);
+        if (token) ChartModule.loadChart(token, title, null, vol24hr);
       });
 
       item.addEventListener('dblclick', () => {
@@ -706,22 +707,23 @@ const MarketsModule = {
     container.querySelectorAll('.region-market').forEach((item, index) => {
       item.addEventListener('click', () => {
         const event = this._displayedEvents[index];
+        const vol24hr = event?.volume24hr || null;
 
         // Multiple choice - show all choices on chart
         if (event && event.eventType === 'multiple-choice' && event.choices.length > 1) {
-          ChartModule.loadMultiChart(event.choices, event.title);
+          ChartModule.loadMultiChart(event.choices, event.title, null, vol24hr);
           return;
         }
 
         // Date series - show all dates on chart
         if (event && event.eventType === 'date-series' && event.dateMarkets.length > 1) {
-          ChartModule.loadMultiChart(event.dateMarkets, event.title);
+          ChartModule.loadMultiChart(event.dateMarkets, event.title, null, vol24hr);
           return;
         }
 
         // Binary - single chart
         if (event && event.tokenId) {
-          ChartModule.loadChart(event.tokenId, event.title);
+          ChartModule.loadChart(event.tokenId, event.title, null, vol24hr);
         }
       });
 
