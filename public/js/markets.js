@@ -6,6 +6,8 @@
 const MarketsModule = {
   markets: [],
   lastUpdate: null,
+  currentView: 'volume',  // Track current view: 'volume', 'hot', 'movers', 'domestic', or region ID
+  currentRegion: null,
 
   // Format volume for display (e.g., 1.2M, 500K)
   formatVolume(vol) {
@@ -451,8 +453,25 @@ const MarketsModule = {
     `;
   },
 
+  // General render method - renders current view
+  render() {
+    if (this.currentView === 'hot') {
+      this.renderHotMarkets();
+    } else if (this.currentView === 'movers') {
+      this.renderPriceMovers();
+    } else if (this.currentView === 'domestic') {
+      this.renderDomesticMarkets();
+    } else if (this.currentView === 'region' && this.currentRegion) {
+      this.renderRegionMarkets(this.currentRegion);
+    } else {
+      this.renderTopMovers();
+    }
+  },
+
   // Render US DOMESTIC markets
   renderDomesticMarkets() {
+    this.currentView = 'domestic';
+    this.currentRegion = null;
     const container = document.getElementById('top-movers');
     const events = this.getDomesticMarkets(10);
 
@@ -476,6 +495,8 @@ const MarketsModule = {
 
   // Render HOT markets (by 24hr volume)
   renderHotMarkets() {
+    this.currentView = 'hot';
+    this.currentRegion = null;
     const container = document.getElementById('top-movers');
     const events = this.getTopBy24hrVolume(8);
 
@@ -499,6 +520,8 @@ const MarketsModule = {
 
   // Render MOVERS (by price change)
   renderPriceMovers() {
+    this.currentView = 'movers';
+    this.currentRegion = null;
     const container = document.getElementById('top-movers');
     const events = this.getTopMovers(8);
 
@@ -560,6 +583,8 @@ const MarketsModule = {
 
   // Render top markets panel (by volume)
   renderTopMovers() {
+    this.currentView = 'volume';
+    this.currentRegion = null;
     const container = document.getElementById('top-movers');
     const events = this.getTopByVolume(6);
 
@@ -591,6 +616,8 @@ const MarketsModule = {
   // Render region markets panel with term structure
   // Now renders to top-movers container instead of separate region-markets
   renderRegionMarkets(regionId) {
+    this.currentView = 'region';
+    this.currentRegion = regionId;
     const container = document.getElementById('top-movers');
     if (!container) return;
 

@@ -61,7 +61,7 @@ const App = {
       MapModule.updateFromMarkets(MarketsModule.markets);
 
       // Render all panels
-      MarketsModule.renderTopMovers();
+      MarketsModule.render();
       NewsModule.render();
       OsintModule.render();
 
