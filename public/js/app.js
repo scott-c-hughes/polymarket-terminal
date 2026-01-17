@@ -122,6 +122,9 @@ const App = {
     changeEl.className = 'price-change ' + (changeVal >= 0 ? 'positive' : 'negative');
   },
 
+  // Track ticker content to avoid unnecessary resets
+  lastTickerHash: null,
+
   // Update news ticker with latest headlines
   updateNewsTicker() {
     const tickerEl = document.getElementById('news-ticker');
@@ -129,6 +132,15 @@ const App = {
 
     // Get latest 20 news items
     const items = NewsModule.news.slice(0, 20);
+
+    // Create a hash of the content to check if it changed
+    const contentHash = items.map(i => i.title).join('|').slice(0, 200);
+
+    // Only update if content actually changed
+    if (this.lastTickerHash === contentHash) {
+      return;
+    }
+    this.lastTickerHash = contentHash;
 
     tickerEl.innerHTML = items.map(item => `
       <span class="ticker-item">
