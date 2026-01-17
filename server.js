@@ -408,9 +408,10 @@ app.get('/api/osint', async (req, res) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`
+// Start server (only when running locally, not on Vercel)
+if (process.env.VERCEL !== '1') {
+  app.listen(PORT, () => {
+    console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║              SITUATION MONITOR                            ║
 ║                                                           ║
@@ -418,5 +419,9 @@ app.listen(PORT, () => {
 ║                                                           ║
 ║   Open this URL in your browser to view the terminal      ║
 ╚═══════════════════════════════════════════════════════════╝
-  `);
-});
+    `);
+  });
+}
+
+// Export for Vercel
+module.exports = app;
