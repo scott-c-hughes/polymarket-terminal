@@ -455,6 +455,7 @@ const MarketsModule = {
 
   // General render method - renders current view
   render() {
+    console.log('[MARKETS] render() called, currentView:', this.currentView, 'currentRegion:', this.currentRegion);
     if (this.currentView === 'hot') {
       this.renderHotMarkets();
     } else if (this.currentView === 'movers') {

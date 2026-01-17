@@ -1089,7 +1089,7 @@ const CommandsModule = {
       OsintModule.fetchOsint()
     ]);
 
-    MarketsModule.renderTopMovers();
+    MarketsModule.render();
     NewsModule.render();
     OsintModule.render();
 
