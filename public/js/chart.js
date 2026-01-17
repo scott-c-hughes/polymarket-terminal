@@ -115,17 +115,23 @@ const ChartModule = {
   calculateActivity(chartData) {
     if (chartData.length < 2) return [];
 
-    const activity = [];
+    // First pass: calculate all changes and find max
+    const changes = [];
+    let maxChange = 0;
+
     for (let i = 1; i < chartData.length; i++) {
       const priceChange = chartData[i].value - chartData[i - 1].value;
-      const absChange = Math.abs(priceChange) * 1000;  // Scale up for visibility
-
-      activity.push({
-        time: chartData[i].time,
-        value: absChange,
-        color: priceChange >= 0 ? 'rgba(0, 255, 65, 0.5)' : 'rgba(255, 59, 59, 0.5)',
-      });
+      const absChange = Math.abs(priceChange);
+      changes.push({ time: chartData[i].time, change: priceChange, abs: absChange });
+      if (absChange > maxChange) maxChange = absChange;
     }
+
+    // Normalize to 0-100 range for visibility
+    const activity = changes.map(c => ({
+      time: c.time,
+      value: maxChange > 0 ? (c.abs / maxChange) * 100 : 0,
+      color: c.change >= 0 ? 'rgba(0, 255, 65, 0.6)' : 'rgba(255, 59, 59, 0.6)',
+    }));
 
     return activity;
   },
