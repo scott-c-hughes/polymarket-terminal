@@ -245,6 +245,54 @@ const LOCATIONS = {
     zoom: 6,
     keywords: ["serbia", "serbian", "belgrade", "vucic"]
   },
+  slovakia: {
+    name: "Slovakia",
+    coords: [48.6690, 19.6990],
+    zoom: 7,
+    keywords: ["slovakia", "slovak", "bratislava", "fico"]
+  },
+  czechia: {
+    name: "Czech Republic",
+    coords: [49.8175, 15.4730],
+    zoom: 7,
+    keywords: ["czech", "czechia", "prague", "fiala"]
+  },
+  croatia: {
+    name: "Croatia",
+    coords: [45.1000, 15.2000],
+    zoom: 7,
+    keywords: ["croatia", "croatian", "zagreb"]
+  },
+  slovenia: {
+    name: "Slovenia",
+    coords: [46.1512, 14.9955],
+    zoom: 8,
+    keywords: ["slovenia", "slovenian", "ljubljana"]
+  },
+  bulgaria: {
+    name: "Bulgaria",
+    coords: [42.7339, 25.4858],
+    zoom: 7,
+    keywords: ["bulgaria", "bulgarian", "sofia"]
+  },
+  lithuania: {
+    name: "Lithuania",
+    coords: [55.1694, 23.8813],
+    zoom: 7,
+    keywords: ["lithuania", "lithuanian", "vilnius"]
+  },
+  latvia: {
+    name: "Latvia",
+    coords: [56.8796, 24.6032],
+    zoom: 7,
+    keywords: ["latvia", "latvian", "riga"]
+  },
+  estonia: {
+    name: "Estonia",
+    coords: [58.5953, 25.0136],
+    zoom: 7,
+    keywords: ["estonia", "estonian", "tallinn"]
+  },
 
   // Middle East
   israel: {
