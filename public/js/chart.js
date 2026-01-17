@@ -235,6 +235,7 @@ const ChartModule = {
     // Build legend HTML
     let legendHtml = '<div class="chart-legend">';
     let loadedCount = 0;
+    let firstChartData = null;  // Store first market's data for volume bars
 
     // Load each date's chart data
     for (let i = 0; i < Math.min(dateMarkets.length, 6); i++) {
@@ -261,6 +262,11 @@ const ChartModule = {
 
         if (chartData.length === 0) continue;
 
+        // Store first market's data for volume bars
+        if (!firstChartData) {
+          firstChartData = chartData;
+        }
+
         const color = this.colors[i % this.colors.length];
         const series = this.addSeries(color);
         series.setData(chartData);
@@ -279,6 +285,15 @@ const ChartModule = {
     legendHtml += '</div>';
 
     if (loadedCount > 0) {
+      // Add activity/volume bars based on first market
+      if (firstChartData && firstChartData.length > 1) {
+        const activityData = this.calculateActivity(firstChartData);
+        if (activityData.length > 0) {
+          this.addVolumeSeries();
+          this.volumeSeries.setData(activityData);
+        }
+      }
+
       container.insertAdjacentHTML('beforeend', legendHtml);
       this.chart.timeScale().fitContent();
       document.getElementById('chart-market-name').textContent = eventTitle + ' (Term Structure)';
