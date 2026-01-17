@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SITUATION MONITOR</title>
+
+  <!-- IBM Plex Mono font for that terminal look -->
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Leaflet CSS for the map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Our Bloomberg-style CSS -->
+  <link rel="stylesheet" href="css/terminal.css">
+</head>
+<body>
+  <div class="terminal">
+    <!-- Header Bar -->
+    <header class="terminal-header">
+      <div class="header-left">
+        <span class="logo">SITUATION MONITOR</span>
+      </div>
+      <div class="header-prices" id="header-prices">
+        <div class="price-item" data-symbol="SPY">
+          <span class="price-label">S&P</span>
+          <span class="price-value">--</span>
+          <span class="price-change">--</span>
+        </div>
+        <div class="price-item" data-symbol="VIX">
+          <span class="price-label">VIX</span>
+          <span class="price-value">--</span>
+          <span class="price-change">--</span>
+        </div>
+        <div class="price-item" data-symbol="DXY">
+          <span class="price-label">DXY</span>
+          <span class="price-value">--</span>
+          <span class="price-change">--</span>
+        </div>
+        <div class="price-item" data-symbol="GOLD">
+          <span class="price-label">GOLD</span>
+          <span class="price-value">--</span>
+          <span class="price-change">--</span>
+        </div>
+        <div class="price-item" data-symbol="OIL">
+          <span class="price-label">WTI</span>
+          <span class="price-value">--</span>
+          <span class="price-change">--</span>
+        </div>
+        <div class="price-item" data-symbol="BTC">
+          <span class="price-label">BTC</span>
+          <span class="price-value">--</span>
+          <span class="price-change">--</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <span class="status-indicator live"></span>
+        <span class="status-text">LIVE</span>
+        <span class="clock" id="clock">--:--:--</span>
+      </div>
+    </header>
+
+    <!-- News Ticker -->
+    <div class="news-ticker">
+      <div class="ticker-label">BREAKING</div>
+      <div class="ticker-wrap">
+        <div class="ticker-content" id="news-ticker">
+          <span class="ticker-item">Loading headlines...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <main class="terminal-main">
+      <!-- Top Row: News + OSINT + Markets -->
+      <div class="feeds-row">
+        <section class="panel news-panel">
+          <div class="panel-header">
+            <span class="panel-title">NEWS MONITOR</span>
+            <span class="panel-badge">RSS</span>
+          </div>
+          <div class="panel-content" id="news-feed">
+            <div class="loading">Loading news...</div>
+          </div>
+        </section>
+
+        <section class="panel osint-panel">
+          <div class="panel-header">
+            <span class="panel-title">X/OSINT MONITOR</span>
+            <span class="panel-badge">RESOURCES</span>
+          </div>
+          <div class="panel-content" id="osint-feed">
+            <div class="loading">Loading OSINT feed...</div>
+          </div>
+        </section>
+
+        <section class="panel movers-panel">
+          <div class="panel-header">
+            <span class="panel-title">TOP VOLUME</span>
+            <span class="panel-badge">MARKETS</span>
+          </div>
+          <div class="panel-content" id="top-movers">
+            <div class="loading">Loading markets...</div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Bottom Row: Map + Chart -->
+      <div class="bottom-row">
+        <section class="panel map-panel">
+          <div class="panel-header">
+            <span class="panel-title">GLOBAL HOTSPOTS</span>
+            <span class="panel-subtitle" id="map-focus">WORLD VIEW</span>
+          </div>
+          <div class="map-container" id="map"></div>
+        </section>
+
+        <section class="panel chart-panel">
+          <div class="panel-header">
+            <span class="panel-title">PRICE CHART</span>
+            <span class="panel-subtitle" id="chart-market-name">Select a market</span>
+            <div class="chart-timeframes">
+              <button class="tf-btn" data-interval="1h">1H</button>
+              <button class="tf-btn" data-interval="6h">6H</button>
+              <button class="tf-btn" data-interval="1d">1D</button>
+              <button class="tf-btn" data-interval="1w">1W</button>
+              <button class="tf-btn active" data-interval="max">ALL</button>
+            </div>
+          </div>
+          <div class="chart-container" id="chart-container">
+            <div class="placeholder">Click a market to view chart</div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Function Keys Bar (Bloomberg style) -->
+    <div class="function-bar">
+      <span class="fn-key" data-cmd="help"><span class="fn-label">F1</span> HELP</span>
+      <span class="fn-key" data-cmd="top"><span class="fn-label">F2</span> TOP</span>
+      <span class="fn-key" data-cmd="vol"><span class="fn-label">F3</span> VOL</span>
+      <span class="fn-key" data-cmd="news"><span class="fn-label">F4</span> NEWS</span>
+      <span class="fn-key" data-cmd="refresh"><span class="fn-label">F5</span> REFRESH</span>
+      <span class="fn-key" data-cmd="osint"><span class="fn-label">F7</span> OSINT</span>
+      <span class="fn-key" data-cmd="alrt"><span class="fn-label">F8</span> ALRT</span>
+    </div>
+
+    <!-- Command Input -->
+    <footer class="terminal-footer">
+      <span class="prompt">&gt;</span>
+      <input type="text" id="command-input" placeholder="Enter command (GP iran, VOL, NI russia, SALT iran 50...)" autocomplete="off" spellcheck="false">
+      <div class="command-hints" id="command-hints"></div>
+    </footer>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Lightweight Charts (TradingView) -->
+  <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+
+  <!-- Our Scripts -->
+  <script src="data/locations.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/markets.js"></script>
+  <script src="js/chart.js"></script>
+  <script src="js/news.js"></script>
+  <script src="js/osint.js"></script>
+  <script src="js/commands.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

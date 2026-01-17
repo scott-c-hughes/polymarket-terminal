@@ -1,0 +1,158 @@
+{
+  "usa": {
+    "name": "USA",
+    "coords": [39.8283, -98.5795],
+    "zoom": 4,
+    "keywords": ["usa", "united states", "america", "domestic", "doge", "fed", "congress"]
+  },
+  "minnesota": {
+    "name": "Minnesota",
+    "coords": [46.7296, -94.6859],
+    "zoom": 6,
+    "keywords": ["minnesota", "minneapolis", "st paul", "twin cities", "ice raid", "ice arrest", "ice detain", "ice deport"]
+  },
+  "texas": {
+    "name": "Texas",
+    "coords": [31.9686, -99.9018],
+    "zoom": 5,
+    "keywords": ["texas", "border", "abbott", "migrant", "deportation"]
+  },
+  "greenland": {
+    "name": "Greenland",
+    "coords": [71.7069, -42.6043],
+    "zoom": 3,
+    "keywords": ["greenland", "denmark", "arctic"]
+  },
+  "panama": {
+    "name": "Panama",
+    "coords": [8.5380, -80.7821],
+    "zoom": 6,
+    "keywords": ["panama", "canal", "darien"]
+  },
+  "colombia": {
+    "name": "Colombia",
+    "coords": [4.5709, -74.2973],
+    "zoom": 5,
+    "keywords": ["colombia", "bogota", "colombian"]
+  },
+  "mexico": {
+    "name": "Mexico",
+    "coords": [23.6345, -102.5528],
+    "zoom": 4,
+    "keywords": ["mexico", "mexican", "cartel", "border"]
+  },
+  "iran": {
+    "name": "Iran",
+    "coords": [32.4279, 53.6880],
+    "zoom": 5,
+    "keywords": ["iran", "tehran", "khamenei", "irgc", "persian"]
+  },
+  "venezuela": {
+    "name": "Venezuela",
+    "coords": [6.4238, -66.5897],
+    "zoom": 5,
+    "keywords": ["venezuela", "maduro", "caracas", "guaido"]
+  },
+  "russia": {
+    "name": "Russia",
+    "coords": [61.5240, 105.3188],
+    "zoom": 3,
+    "keywords": ["russia", "putin", "moscow", "kremlin", "russian"]
+  },
+  "ukraine": {
+    "name": "Ukraine",
+    "coords": [48.3794, 31.1656],
+    "zoom": 5,
+    "keywords": ["ukraine", "kyiv", "zelensky", "ukrainian", "donbas"]
+  },
+  "china": {
+    "name": "China",
+    "coords": [35.8617, 104.1954],
+    "zoom": 4,
+    "keywords": ["china", "beijing", "xi jinping", "chinese", "prc"]
+  },
+  "taiwan": {
+    "name": "Taiwan",
+    "coords": [23.6978, 120.9605],
+    "zoom": 6,
+    "keywords": ["taiwan", "taipei", "taiwanese"]
+  },
+  "israel": {
+    "name": "Israel",
+    "coords": [31.0461, 34.8516],
+    "zoom": 7,
+    "keywords": ["israel", "israeli", "netanyahu", "idf", "tel aviv"]
+  },
+  "gaza": {
+    "name": "Gaza",
+    "coords": [31.3547, 34.3088],
+    "zoom": 9,
+    "keywords": ["gaza", "hamas", "palestinian"]
+  },
+  "northkorea": {
+    "name": "North Korea",
+    "coords": [40.3399, 127.5101],
+    "zoom": 6,
+    "keywords": ["north korea", "dprk", "kim jong", "pyongyang"]
+  },
+  "syria": {
+    "name": "Syria",
+    "coords": [34.8021, 38.9968],
+    "zoom": 6,
+    "keywords": ["syria", "assad", "damascus", "syrian"]
+  },
+  "turkey": {
+    "name": "Turkey",
+    "coords": [38.9637, 35.2433],
+    "zoom": 5,
+    "keywords": ["turkey", "erdogan", "ankara", "turkish"]
+  },
+  "saudiarabia": {
+    "name": "Saudi Arabia",
+    "coords": [23.8859, 45.0792],
+    "zoom": 5,
+    "keywords": ["saudi", "mbs", "riyadh"]
+  },
+  "india": {
+    "name": "India",
+    "coords": [20.5937, 78.9629],
+    "zoom": 4,
+    "keywords": ["india", "modi", "delhi", "indian"]
+  },
+  "pakistan": {
+    "name": "Pakistan",
+    "coords": [30.3753, 69.3451],
+    "zoom": 5,
+    "keywords": ["pakistan", "islamabad", "pakistani"]
+  },
+  "france": {
+    "name": "France",
+    "coords": [46.2276, 2.2137],
+    "zoom": 5,
+    "keywords": ["france", "macron", "paris", "french"]
+  },
+  "uk": {
+    "name": "United Kingdom",
+    "coords": [55.3781, -3.4360],
+    "zoom": 5,
+    "keywords": ["uk", "britain", "starmer", "london", "british"]
+  },
+  "germany": {
+    "name": "Germany",
+    "coords": [51.1657, 10.4515],
+    "zoom": 5,
+    "keywords": ["germany", "german", "berlin", "scholz"]
+  },
+  "brazil": {
+    "name": "Brazil",
+    "coords": [-14.2350, -51.9253],
+    "zoom": 4,
+    "keywords": ["brazil", "lula", "brasilia", "brazilian"]
+  },
+  "argentina": {
+    "name": "Argentina",
+    "coords": [-38.4161, -63.6167],
+    "zoom": 4,
+    "keywords": ["argentina", "milei", "buenos aires"]
+  }
+}
