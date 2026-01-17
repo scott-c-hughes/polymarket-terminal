@@ -453,20 +453,29 @@ const MarketsModule = {
     `;
   },
 
-  // General render method - renders current view
+  // General render method - renders current view (preserves state)
   render() {
     console.log('[MARKETS] render() called, currentView:', this.currentView, 'currentRegion:', this.currentRegion);
-    if (this.currentView === 'hot') {
+
+    // Save current state
+    const savedView = this.currentView;
+    const savedRegion = this.currentRegion;
+
+    if (savedView === 'hot') {
       this.renderHotMarkets();
-    } else if (this.currentView === 'movers') {
+    } else if (savedView === 'movers') {
       this.renderPriceMovers();
-    } else if (this.currentView === 'domestic') {
+    } else if (savedView === 'domestic') {
       this.renderDomesticMarkets();
-    } else if (this.currentView === 'region' && this.currentRegion) {
-      this.renderRegionMarkets(this.currentRegion);
+    } else if (savedView === 'region' && savedRegion) {
+      this.renderRegionMarkets(savedRegion);
     } else {
       this.renderTopMovers();
     }
+
+    // Restore state (in case render methods changed it unexpectedly)
+    this.currentView = savedView;
+    this.currentRegion = savedRegion;
   },
 
   // Render US DOMESTIC markets
