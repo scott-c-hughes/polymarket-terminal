@@ -92,21 +92,33 @@ const NewsModule = {
     }
 
     container.innerHTML = news.slice(0, 30).map(item => `
-      <div class="news-item" data-url="${item.link}">
+      <div class="news-item" data-url="${item.link}" data-title="${this.escapeAttr(item.title)}">
         <div class="news-source">${item.source}</div>
         <div class="news-title">${item.title}</div>
         <div class="news-time">${this.formatTime(item.timestamp)}</div>
       </div>
     `).join('');
 
-    // Add click handlers to open articles
+    // Click shows related markets, double-click opens article
     container.querySelectorAll('.news-item').forEach(item => {
       item.addEventListener('click', () => {
+        const title = item.dataset.title;
+        if (title && typeof RelatedMarketsModule !== 'undefined') {
+          RelatedMarketsModule.showModal(title, 'news');
+        }
+      });
+
+      item.addEventListener('dblclick', () => {
         const url = item.dataset.url;
         if (url) {
           window.open(url, '_blank');
         }
       });
     });
+  },
+
+  // Escape attribute for data-title
+  escapeAttr(text) {
+    return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 };

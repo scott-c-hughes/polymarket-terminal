@@ -8,6 +8,7 @@ const ChartModule = {
   chart: null,
   series: [],  // Array of line series for multi-date
   currentMarket: null,
+  focusedMarket: null,  // Currently isolated market in multi-chart (for order book)
   currentInterval: 'max',  // Current time interval
 
   // Color palette for multiple lines
@@ -186,8 +187,8 @@ const ChartModule = {
     const oldLegend = container.querySelector('.chart-legend');
     if (oldLegend) oldLegend.remove();
 
-    // Build legend HTML
-    let legendHtml = '<div class="chart-legend">';
+    // Track series for legend click toggling
+    const seriesData = [];
     let loadedCount = 0;
 
     // Load each date's chart data
@@ -218,23 +219,50 @@ const ChartModule = {
         const color = this.colors[i % this.colors.length];
         const series = this.addSeries(color);
         series.setData(chartData);
+
+        const label = dm.title || `Contract ${i + 1}`;
+        seriesData.push({
+          series,
+          color,
+          label,
+          data: chartData,
+          visible: true,
+          marketData: { tokenId: dm.tokenId, title: dm.title }
+        });
         loadedCount++;
         console.log(`[CHART] Loaded ${dm.title}: ${chartData.length} points, range ${chartData[0]?.value?.toFixed(3)} - ${chartData[chartData.length-1]?.value?.toFixed(3)}`);
-
-        // Add to legend
-        const label = dm.title || `Contract ${i + 1}`;
-        legendHtml += `<span class="legend-item"><span class="legend-color" style="background:${color}"></span>${label}</span>`;
 
       } catch (error) {
         console.error('[CHART] Error loading', dm.title, error);
       }
     }
 
-    legendHtml += '</div>';
-
     if (loadedCount > 0) {
-      container.insertAdjacentHTML('beforeend', legendHtml);
+      // Build legend with clickable items
+      const legendDiv = document.createElement('div');
+      legendDiv.className = 'chart-legend';
+
+      seriesData.forEach((item, idx) => {
+        const legendItem = document.createElement('span');
+        legendItem.className = 'legend-item clickable';
+        legendItem.dataset.index = idx;
+        legendItem.innerHTML = `<span class="legend-color" style="background:${item.color}"></span>${item.label}`;
+        legendItem.title = 'Click to isolate, click again to show all';
+
+        legendItem.addEventListener('click', () => {
+          this.toggleLegendItem(seriesData, idx, legendDiv);
+        });
+
+        legendDiv.appendChild(legendItem);
+      });
+
+      container.appendChild(legendDiv);
       this.chart.timeScale().fitContent();
+
+      // Set first market as default focused market for BOOK command
+      if (seriesData.length > 0) {
+        this.focusedMarket = seriesData[0].marketData;
+      }
 
       // Display title with 24hr volume if available
       const volText = volume24hr ? ` (24hr: ${this.formatVolume(volume24hr)})` : '';
@@ -244,6 +272,46 @@ const ChartModule = {
     }
 
     this.currentMarket = { multi: true, dateMarkets, eventTitle, volume24hr };
+  },
+
+  // Toggle legend item visibility - click to isolate, click again to show all
+  toggleLegendItem(seriesData, clickedIdx, legendDiv) {
+    const allVisible = seriesData.every(s => s.visible);
+    const onlyThisVisible = seriesData.every((s, i) => i === clickedIdx ? s.visible : !s.visible);
+
+    if (allVisible || !onlyThisVisible) {
+      // Isolate: show only clicked series
+      seriesData.forEach((item, idx) => {
+        if (idx === clickedIdx) {
+          item.series.applyOptions({ visible: true });
+          item.visible = true;
+        } else {
+          item.series.applyOptions({ visible: false });
+          item.visible = false;
+        }
+      });
+      // Track focused market for order book
+      this.focusedMarket = seriesData[clickedIdx].marketData || null;
+    } else {
+      // Show all
+      seriesData.forEach(item => {
+        item.series.applyOptions({ visible: true });
+        item.visible = true;
+      });
+      // Clear focused market
+      this.focusedMarket = null;
+    }
+
+    // Update legend styling
+    legendDiv.querySelectorAll('.legend-item').forEach((el, idx) => {
+      if (seriesData[idx].visible) {
+        el.classList.remove('dimmed');
+      } else {
+        el.classList.add('dimmed');
+      }
+    });
+
+    this.chart.timeScale().fitContent();
   },
 
   // Refresh current chart

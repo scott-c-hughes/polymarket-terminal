@@ -7,7 +7,13 @@ const OsintModule = {
   tweets: [],
   accounts: [],
   filterKeyword: null,
-  currentView: 'osint', // 'osint', 'flights', 'ships'
+  currentView: 'osint', // 'osint', 'telegram', 'x', 'flights', 'ships'
+  telegramData: null,
+  telegramRefreshInterval: null,
+  TELEGRAM_REFRESH_RATE: 60000, // 60 seconds
+  xData: null,
+  xRefreshInterval: null,
+  X_REFRESH_RATE: 60000, // 60 seconds
 
   // OSINT tracking resources - free tools
   resources: [
@@ -108,7 +114,409 @@ const OsintModule = {
   // Show OSINT resources
   showOsint() {
     this.currentView = 'osint';
+    this.stopTelegramRefresh();
     this.render();
+  },
+
+  // Show Telegram feed
+  showTelegram() {
+    this.currentView = 'telegram';
+    this.stopXRefresh();
+    this.render();
+    this.fetchTelegram();
+    this.startTelegramRefresh();
+  },
+
+  // Show X feed
+  showX() {
+    this.currentView = 'x';
+    this.stopTelegramRefresh();
+    this.render();
+    this.fetchX();
+    this.startXRefresh();
+  },
+
+  // Fetch X tweets
+  async fetchX() {
+    try {
+      const response = await fetch('/api/x');
+      const data = await response.json();
+      this.xData = data;
+      console.log('[OSINT] Fetched X data:', data.configured ? 'configured' : 'not configured');
+
+      // Re-render if we're on the X view
+      if (this.currentView === 'x') {
+        this.renderXView();
+      }
+
+      return data;
+    } catch (error) {
+      console.error('[OSINT] X fetch error:', error);
+      return null;
+    }
+  },
+
+  // Start auto-refresh for X
+  startXRefresh() {
+    if (this.xRefreshInterval) return;
+    this.xRefreshInterval = setInterval(() => {
+      if (this.currentView === 'x') {
+        console.log('[OSINT] Auto-refreshing X...');
+        this.fetchX();
+      }
+    }, this.X_REFRESH_RATE);
+  },
+
+  // Stop auto-refresh for X
+  stopXRefresh() {
+    if (this.xRefreshInterval) {
+      clearInterval(this.xRefreshInterval);
+      this.xRefreshInterval = null;
+    }
+  },
+
+  // Fetch Telegram messages
+  async fetchTelegram() {
+    try {
+      const response = await fetch('/api/telegram');
+      const data = await response.json();
+      this.telegramData = data;
+      console.log('[OSINT] Fetched Telegram data:', data.configured ? 'configured' : 'not configured');
+
+      // Re-render if we're on the telegram view
+      if (this.currentView === 'telegram') {
+        this.renderTelegramView();
+      }
+
+      return data;
+    } catch (error) {
+      console.error('[OSINT] Telegram fetch error:', error);
+      return null;
+    }
+  },
+
+  // Start auto-refresh for Telegram
+  startTelegramRefresh() {
+    if (this.telegramRefreshInterval) return;
+    this.telegramRefreshInterval = setInterval(() => {
+      if (this.currentView === 'telegram') {
+        console.log('[OSINT] Auto-refreshing Telegram...');
+        this.fetchTelegram();
+      }
+    }, this.TELEGRAM_REFRESH_RATE);
+  },
+
+  // Stop auto-refresh for Telegram
+  stopTelegramRefresh() {
+    if (this.telegramRefreshInterval) {
+      clearInterval(this.telegramRefreshInterval);
+      this.telegramRefreshInterval = null;
+    }
+  },
+
+  // Format relative time
+  formatRelativeTime(timestamp) {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'now';
+    if (minutes < 60) return `${minutes}m`;
+    if (hours < 24) return `${hours}h`;
+    return `${days}d`;
+  },
+
+  // Render Telegram view
+  renderTelegramView() {
+    const container = document.getElementById('osint-feed');
+    const panelTitle = document.querySelector('.osint-panel .panel-title');
+    const panelBadge = document.querySelector('.osint-panel .panel-badge');
+
+    if (panelTitle) panelTitle.textContent = 'TELEGRAM OSINT';
+    if (panelBadge) { panelBadge.textContent = 'LIVE'; panelBadge.style.color = '#00ff41'; }
+
+    // Check if data loaded
+    if (!this.telegramData) {
+      container.innerHTML = '<div class="loading">Loading Telegram feed...</div>';
+      return;
+    }
+
+    // Not configured - show setup instructions
+    if (!this.telegramData.configured) {
+      container.innerHTML = `
+        <div class="telegram-setup">
+          <div class="telegram-notice">TELEGRAM API NOT CONFIGURED</div>
+          <div class="telegram-instructions">
+            <p>To enable live Telegram OSINT:</p>
+            <ol>
+              <li>Go to <a href="https://my.telegram.org" target="_blank">my.telegram.org</a></li>
+              <li>Log in with your phone number</li>
+              <li>Create an "App" to get api_id and api_hash</li>
+              <li>Run: <code>node telegram-auth.js</code></li>
+              <li>Set the environment variables</li>
+            </ol>
+          </div>
+          <div class="telegram-channels-header">MONITORED CHANNELS (click to open):</div>
+          ${(this.telegramData.channels || []).map(ch => `
+            <div class="telegram-channel-link" data-url="${ch.url}">
+              <span class="telegram-handle">${ch.handle}</span>
+              <span class="telegram-channel-name">${ch.name}</span>
+              <span class="telegram-region">${ch.region.toUpperCase()}</span>
+            </div>
+          `).join('')}
+          <div class="tracking-controls osint-nav">
+            <button class="track-btn active" data-view="telegram">TELEGRAM</button>
+            <button class="track-btn" data-view="x">X</button>
+            <button class="track-btn" data-view="osint">RESOURCES</button>
+            <button class="track-btn" data-view="flights">FLIGHTS</button>
+            <button class="track-btn" data-view="ships">SHIPS</button>
+          </div>
+        </div>
+      `;
+      this.attachTrackingControls(container);
+      this.attachTelegramLinks(container);
+      return;
+    }
+
+    // Not authenticated - show auth instructions
+    if (!this.telegramData.authenticated) {
+      container.innerHTML = `
+        <div class="telegram-setup">
+          <div class="telegram-notice">TELEGRAM SESSION REQUIRED</div>
+          <div class="telegram-instructions">
+            <p>${this.telegramData.message || 'Run the authentication script to connect.'}</p>
+            <code>node telegram-auth.js</code>
+          </div>
+          <div class="telegram-channels-header">MONITORED CHANNELS (click to open):</div>
+          ${(this.telegramData.channels || []).map(ch => `
+            <div class="telegram-channel-link" data-url="${ch.url}">
+              <span class="telegram-handle">${ch.handle}</span>
+              <span class="telegram-channel-name">${ch.name}</span>
+              <span class="telegram-region">${ch.region.toUpperCase()}</span>
+            </div>
+          `).join('')}
+          <div class="tracking-controls osint-nav">
+            <button class="track-btn active" data-view="telegram">TELEGRAM</button>
+            <button class="track-btn" data-view="x">X</button>
+            <button class="track-btn" data-view="osint">RESOURCES</button>
+            <button class="track-btn" data-view="flights">FLIGHTS</button>
+            <button class="track-btn" data-view="ships">SHIPS</button>
+          </div>
+        </div>
+      `;
+      this.attachTrackingControls(container);
+      this.attachTelegramLinks(container);
+      return;
+    }
+
+    // Show messages
+    const messages = this.telegramData.messages || [];
+
+    if (messages.length === 0) {
+      container.innerHTML = `
+        <div class="telegram-feed">
+          <div class="placeholder">No messages found</div>
+          <div class="tracking-controls osint-nav">
+            <button class="track-btn active" data-view="telegram">TELEGRAM</button>
+            <button class="track-btn" data-view="x">X</button>
+            <button class="track-btn" data-view="osint">RESOURCES</button>
+            <button class="track-btn" data-view="flights">FLIGHTS</button>
+            <button class="track-btn" data-view="ships">SHIPS</button>
+          </div>
+        </div>
+      `;
+      this.attachTrackingControls(container);
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="telegram-feed">
+        <div class="telegram-messages">
+          ${messages.map(msg => `
+            <div class="telegram-message" data-url="${msg.link}" data-text="${this.escapeAttr(msg.text)}">
+              <div class="telegram-message-header">
+                <span class="telegram-channel-badge">${msg.channel}</span>
+                <span class="telegram-handle">${msg.handle}</span>
+                ${msg.translated ? '<span class="telegram-translated">TRANSLATED</span>' : ''}
+                <span class="telegram-time">${this.formatRelativeTime(msg.timestamp)}</span>
+              </div>
+              <div class="telegram-message-text">${this.escapeHtml(msg.text)}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="tracking-controls osint-nav">
+          <button class="track-btn active" data-view="telegram">TELEGRAM</button>
+          <button class="track-btn" data-view="osint">RESOURCES</button>
+          <button class="track-btn" data-view="flights">FLIGHTS</button>
+          <button class="track-btn" data-view="ships">SHIPS</button>
+        </div>
+      </div>
+    `;
+
+    // Click shows related markets, double-click opens in Telegram
+    container.querySelectorAll('.telegram-message').forEach(item => {
+      item.addEventListener('click', () => {
+        const text = item.dataset.text;
+        if (text && typeof RelatedMarketsModule !== 'undefined') {
+          RelatedMarketsModule.showModal(text, 'telegram');
+        }
+      });
+
+      item.addEventListener('dblclick', () => {
+        const url = item.dataset.url;
+        if (url) window.open(url, '_blank');
+      });
+    });
+
+    this.attachTrackingControls(container);
+  },
+
+  // Render X view
+  renderXView() {
+    const container = document.getElementById('osint-feed');
+    const panelTitle = document.querySelector('.osint-panel .panel-title');
+    const panelBadge = document.querySelector('.osint-panel .panel-badge');
+
+    if (panelTitle) panelTitle.textContent = 'X OSINT';
+    if (panelBadge) { panelBadge.textContent = 'LIVE'; panelBadge.style.color = '#00ff41'; }
+
+    // Check if data loaded
+    if (!this.xData) {
+      container.innerHTML = '<div class="loading">Loading X feed...</div>';
+      return;
+    }
+
+    // Not configured - show setup instructions
+    if (!this.xData.configured) {
+      container.innerHTML = `
+        <div class="x-setup">
+          <div class="x-notice">X API NOT CONFIGURED</div>
+          <div class="x-instructions">
+            <p>To enable live X OSINT:</p>
+            <ol>
+              <li>Go to <a href="https://developer.x.com/en/portal/dashboard" target="_blank">developer.x.com</a></li>
+              <li>Create a project/app</li>
+              <li>Get your Bearer Token</li>
+              <li>Set <code>X_BEARER_TOKEN</code> in .env</li>
+            </ol>
+            <p style="margin-top: 8px; color: var(--warning);">Note: Basic tier is $100/month</p>
+          </div>
+          <div class="x-accounts-header">MONITORED ACCOUNTS (click to open):</div>
+          ${(this.xData.accounts || []).map(acc => `
+            <div class="x-account-link" data-url="${acc.url}">
+              <span class="x-handle">${acc.handle}</span>
+              <span class="x-account-name">${acc.name}</span>
+              <span class="x-region">${acc.region.toUpperCase()}</span>
+            </div>
+          `).join('')}
+          <div class="tracking-controls osint-nav">
+            <button class="track-btn" data-view="telegram">TELEGRAM</button>
+            <button class="track-btn active" data-view="x">X</button>
+            <button class="track-btn" data-view="osint">RESOURCES</button>
+            <button class="track-btn" data-view="flights">FLIGHTS</button>
+            <button class="track-btn" data-view="ships">SHIPS</button>
+          </div>
+        </div>
+      `;
+      this.attachTrackingControls(container);
+      this.attachXLinks(container);
+      return;
+    }
+
+    // Show messages
+    const messages = this.xData.messages || [];
+
+    if (messages.length === 0) {
+      container.innerHTML = `
+        <div class="x-feed">
+          <div class="placeholder">No tweets found</div>
+          <div class="tracking-controls osint-nav">
+            <button class="track-btn" data-view="telegram">TELEGRAM</button>
+            <button class="track-btn active" data-view="x">X</button>
+            <button class="track-btn" data-view="osint">RESOURCES</button>
+            <button class="track-btn" data-view="flights">FLIGHTS</button>
+            <button class="track-btn" data-view="ships">SHIPS</button>
+          </div>
+        </div>
+      `;
+      this.attachTrackingControls(container);
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="x-feed">
+        <div class="x-messages">
+          ${messages.map(msg => `
+            <div class="x-message" data-url="${msg.link}" data-text="${this.escapeAttr(msg.text)}">
+              <div class="x-message-header">
+                <span class="x-channel-badge">${msg.channel}</span>
+                <span class="x-handle">${msg.handle}</span>
+                <span class="x-time">${this.formatRelativeTime(msg.timestamp)}</span>
+              </div>
+              <div class="x-message-text">${this.escapeHtml(msg.text)}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="tracking-controls osint-nav">
+          <button class="track-btn" data-view="telegram">TELEGRAM</button>
+          <button class="track-btn active" data-view="x">X</button>
+          <button class="track-btn" data-view="osint">RESOURCES</button>
+          <button class="track-btn" data-view="flights">FLIGHTS</button>
+          <button class="track-btn" data-view="ships">SHIPS</button>
+        </div>
+      </div>
+    `;
+
+    // Click shows related markets, double-click opens in X
+    container.querySelectorAll('.x-message').forEach(item => {
+      item.addEventListener('click', () => {
+        const text = item.dataset.text;
+        if (text && typeof RelatedMarketsModule !== 'undefined') {
+          RelatedMarketsModule.showModal(text, 'x');
+        }
+      });
+
+      item.addEventListener('dblclick', () => {
+        const url = item.dataset.url;
+        if (url) window.open(url, '_blank');
+      });
+    });
+
+    this.attachTrackingControls(container);
+  },
+
+  // Attach click handlers for X account links
+  attachXLinks(container) {
+    container.querySelectorAll('.x-account-link').forEach(item => {
+      item.addEventListener('click', () => {
+        const url = item.dataset.url;
+        if (url) window.open(url, '_blank');
+      });
+    });
+  },
+
+  // Escape attribute for data-text
+  escapeAttr(text) {
+    return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/\n/g, ' ');
+  },
+
+  // Escape HTML to prevent XSS
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  },
+
+  // Attach click handlers for Telegram channel links
+  attachTelegramLinks(container) {
+    container.querySelectorAll('.telegram-channel-link').forEach(item => {
+      item.addEventListener('click', () => {
+        const url = item.dataset.url;
+        if (url) window.open(url, '_blank');
+      });
+    });
   },
 
   // Render OSINT panel
@@ -116,6 +524,18 @@ const OsintModule = {
     const container = document.getElementById('osint-feed');
     const panelTitle = document.querySelector('.osint-panel .panel-title');
     const panelBadge = document.querySelector('.osint-panel .panel-badge');
+
+    // Telegram view
+    if (this.currentView === 'telegram') {
+      this.renderTelegramView();
+      return;
+    }
+
+    // X view
+    if (this.currentView === 'x') {
+      this.renderXView();
+      return;
+    }
 
     // Flight tracking view
     if (this.currentView === 'flights') {
@@ -130,8 +550,11 @@ const OsintModule = {
             allowfullscreen
           ></iframe>
           <div class="tracking-controls">
-            <button class="track-btn" data-view="osint">← OSINT</button>
-            <button class="track-btn" data-view="ships">SHIPS →</button>
+            <button class="track-btn" data-view="telegram">TELEGRAM</button>
+            <button class="track-btn" data-view="x">X</button>
+            <button class="track-btn" data-view="osint">RESOURCES</button>
+            <button class="track-btn active" data-view="flights">FLIGHTS</button>
+            <button class="track-btn" data-view="ships">SHIPS</button>
           </div>
         </div>
       `;
@@ -152,8 +575,11 @@ const OsintModule = {
             allowfullscreen
           ></iframe>
           <div class="tracking-controls">
-            <button class="track-btn" data-view="flights">← FLIGHTS</button>
-            <button class="track-btn" data-view="osint">OSINT →</button>
+            <button class="track-btn" data-view="telegram">TELEGRAM</button>
+            <button class="track-btn" data-view="x">X</button>
+            <button class="track-btn" data-view="osint">RESOURCES</button>
+            <button class="track-btn" data-view="flights">FLIGHTS</button>
+            <button class="track-btn active" data-view="ships">SHIPS</button>
           </div>
         </div>
       `;
@@ -196,6 +622,17 @@ const OsintModule = {
         `;
       });
 
+      // Navigation controls
+      html += `
+        <div class="tracking-controls osint-nav">
+          <button class="track-btn" data-view="telegram">TELEGRAM</button>
+          <button class="track-btn" data-view="x">X</button>
+          <button class="track-btn active" data-view="osint">RESOURCES</button>
+          <button class="track-btn" data-view="flights">FLIGHTS</button>
+          <button class="track-btn" data-view="ships">SHIPS</button>
+        </div>
+      `;
+
       html += '</div>';
       container.innerHTML = html;
 
@@ -207,6 +644,7 @@ const OsintModule = {
         });
       });
 
+      this.attachTrackingControls(container);
       return;
     }
 
@@ -241,7 +679,9 @@ const OsintModule = {
     container.querySelectorAll('.track-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const view = btn.dataset.view;
-        if (view === 'flights') this.showFlights();
+        if (view === 'telegram') this.showTelegram();
+        else if (view === 'x') this.showX();
+        else if (view === 'flights') this.showFlights();
         else if (view === 'ships') this.showShips();
         else this.showOsint();
       });
@@ -402,6 +842,345 @@ osintStyles.textContent = `
     font-size: 9px;
     color: var(--text-dim);
     font-style: italic;
+  }
+
+  /* Telegram Feed Styles */
+  .telegram-feed {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 100%;
+  }
+
+  .telegram-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px;
+  }
+
+  .telegram-message {
+    padding: 8px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .telegram-message:hover {
+    background: var(--bg-hover);
+  }
+
+  .telegram-message:last-child {
+    border-bottom: none;
+  }
+
+  .telegram-message-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .telegram-channel-badge {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--bg-primary);
+    background: var(--accent);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+
+  .telegram-handle {
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  .telegram-time {
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-left: auto;
+  }
+
+  .telegram-translated {
+    font-size: 8px;
+    font-weight: 600;
+    color: var(--bg-primary);
+    background: var(--positive);
+    padding: 1px 4px;
+    border-radius: 2px;
+  }
+
+  .telegram-message-text {
+    font-size: 11px;
+    color: var(--text-bright);
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  /* Telegram Setup Styles */
+  .telegram-setup {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .telegram-notice {
+    color: var(--warning);
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    padding: 8px;
+    border: 1px dashed var(--warning);
+    text-align: center;
+  }
+
+  .telegram-instructions {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    padding: 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+  }
+
+  .telegram-instructions p {
+    margin-bottom: 8px;
+  }
+
+  .telegram-instructions ol {
+    margin: 0;
+    padding-left: 16px;
+  }
+
+  .telegram-instructions li {
+    margin-bottom: 4px;
+  }
+
+  .telegram-instructions a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .telegram-instructions a:hover {
+    text-decoration: underline;
+  }
+
+  .telegram-instructions code {
+    background: var(--bg-hover);
+    padding: 2px 6px;
+    color: var(--positive);
+    font-family: var(--font-mono);
+    display: inline-block;
+    margin-top: 4px;
+  }
+
+  .telegram-channels-header {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--text-primary);
+    padding: 6px 4px 4px;
+    margin-top: 8px;
+    border-bottom: 1px solid var(--border-color);
+    letter-spacing: 0.5px;
+  }
+
+  .telegram-channel-link {
+    display: flex;
+    align-items: center;
+    padding: 6px 4px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.15s;
+  }
+
+  .telegram-channel-link:hover {
+    background: var(--bg-hover);
+  }
+
+  .telegram-channel-link .telegram-handle {
+    font-size: 11px;
+    color: var(--accent);
+    min-width: 120px;
+  }
+
+  .telegram-channel-name {
+    font-size: 10px;
+    color: var(--text-secondary);
+    flex: 1;
+  }
+
+  .telegram-region {
+    font-size: 8px;
+    font-weight: 600;
+    color: var(--text-dim);
+    background: var(--bg-hover);
+    padding: 2px 4px;
+    border-radius: 2px;
+  }
+
+  /* X Feed Styles */
+  .x-feed {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 100%;
+  }
+
+  .x-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px;
+  }
+
+  .x-message {
+    padding: 8px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .x-message:hover {
+    background: var(--bg-hover);
+  }
+
+  .x-message:last-child {
+    border-bottom: none;
+  }
+
+  .x-message-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .x-channel-badge {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--bg-primary);
+    background: var(--text-primary);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+
+  .x-handle {
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  .x-time {
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-left: auto;
+  }
+
+  .x-message-text {
+    font-size: 11px;
+    color: var(--text-bright);
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  /* X Setup Styles */
+  .x-setup {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .x-notice {
+    color: var(--warning);
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    padding: 8px;
+    border: 1px dashed var(--warning);
+    text-align: center;
+  }
+
+  .x-instructions {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    padding: 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+  }
+
+  .x-instructions p {
+    margin-bottom: 8px;
+  }
+
+  .x-instructions ol {
+    margin: 0;
+    padding-left: 16px;
+  }
+
+  .x-instructions li {
+    margin-bottom: 4px;
+  }
+
+  .x-instructions a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .x-instructions a:hover {
+    text-decoration: underline;
+  }
+
+  .x-instructions code {
+    background: var(--bg-hover);
+    padding: 2px 6px;
+    color: var(--positive);
+    font-family: var(--font-mono);
+    display: inline-block;
+    margin-top: 4px;
+  }
+
+  .x-accounts-header {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--text-primary);
+    padding: 6px 4px 4px;
+    margin-top: 8px;
+    border-bottom: 1px solid var(--border-color);
+    letter-spacing: 0.5px;
+  }
+
+  .x-account-link {
+    display: flex;
+    align-items: center;
+    padding: 6px 4px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.15s;
+  }
+
+  .x-account-link:hover {
+    background: var(--bg-hover);
+  }
+
+  .x-account-link .x-handle {
+    font-size: 11px;
+    color: var(--text-primary);
+    min-width: 120px;
+  }
+
+  .x-account-name {
+    font-size: 10px;
+    color: var(--text-secondary);
+    flex: 1;
+  }
+
+  .x-region {
+    font-size: 8px;
+    font-weight: 600;
+    color: var(--text-dim);
+    background: var(--bg-hover);
+    padding: 2px 4px;
+    border-radius: 2px;
   }
 `;
 document.head.appendChild(osintStyles);
